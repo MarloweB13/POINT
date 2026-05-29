@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>POINT — Your AI Basketball Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow:wght@300;400;500;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<style>
+:root{--orange:#FF5E1A;--od:#cc4a12;--black:#000;--ob:#0a0a0a;--s:#111;--s2:#1a1a1a;--b:#222;--b2:#333;--t:#f0f0f0;--tm:#888;--td:#444;--w:#fff;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Barlow',sans-serif;background:var(--black);color:var(--t);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;}
+.app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--ob);position:relative;overflow:hidden;}
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* AUTH SCREEN */
+#screen-auth{background:var(--black);align-items:center;justify-content:center;gap:0;}
+.auth-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 32px;width:100%;max-width:360px;}
+.auth-logo{margin-bottom:32px;}
+.auth-logo svg{width:64px;height:64px;}
+.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;letter-spacing:6px;color:var(--orange);margin-bottom:8px;text-align:center;}
+.auth-sub{font-size:13px;color:var(--tm);text-align:center;margin-bottom:40px;line-height:1.6;}
+.auth-google{width:100%;background:#fff;border:none;border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:15px;font-weight:600;color:#333;cursor:pointer;transition:all 0.2s;margin-bottom:12px;font-family:'Barlow',sans-serif;}
+.auth-google:hover{background:#f5f5f5;transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,255,255,0.1);}
+.auth-google svg{width:20px;height:20px;flex-shrink:0;}
+.auth-divider{display:flex;align-items:center;gap:12px;width:100%;margin:16px 0;}
+.auth-divider span{font-size:11px;color:var(--td);}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:0.5px;background:var(--b2);}
+.auth-email-inp{width:100%;background:var(--s);border:0.5px solid var(--b2);border-radius:10px;padding:14px 18px;font-size:14px;color:var(--t);font-family:'Barlow',sans-serif;outline:none;margin-bottom:10px;transition:border-color 0.2s;}
+.auth-email-inp::placeholder{color:var(--td);}
+.auth-email-inp:focus{border-color:var(--orange);}
+.auth-btn{width:100%;background:var(--orange);border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;color:#000;cursor:pointer;font-family:'Barlow',sans-serif;transition:background 0.2s;margin-bottom:12px;}
+.auth-btn:hover{background:var(--od);}
+.auth-switch{font-size:12px;color:var(--tm);text-align:center;}
+.auth-switch span{color:var(--orange);cursor:pointer;text-decoration:underline;}
+.auth-error{font-size:12px;color:#ff4444;text-align:center;margin-bottom:8px;display:none;}
+.auth-error.show{display:block;}
+.auth-mode-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--w);margin-bottom:4px;}
+.auth-loading{font-size:13px;color:var(--tm);text-align:center;display:none;}
+.auth-loading.show{display:block;}
+
+/* ONBOARD */
+#screen-ob{background:var(--black);}
+.ob-hdr{padding:52px 24px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.ob-hdr svg{width:28px;height:28px;}
+.ob-word{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;letter-spacing:5px;color:var(--orange);}
+.ob-prog{padding:0 24px 16px;display:flex;gap:4px;flex-shrink:0;}
+.ps{height:2px;flex:1;background:var(--b2);border-radius:2px;transition:background 0.3s;}
+.ps.done{background:var(--orange);}
+.ps.active{background:rgba(255,94,26,0.4);}
+.ob-chat{flex:1;overflow-y:auto;padding:8px 20px 16px;display:flex;flex-direction:column;gap:12px;scrollbar-width:none;}
+.ob-chat::-webkit-scrollbar{display:none;}
+.pmw{display:flex;flex-direction:column;gap:4px;max-width:88%;}
+.pml{font-family:'DM Mono',monospace;font-size:10px;color:var(--orange);letter-spacing:0.08em;display:flex;align-items:center;gap:5px;}
+.pdot{width:5px;height:5px;border-radius:50%;background:var(--orange);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.pb{background:var(--s);border:0.5px solid var(--b2);border-radius:14px 14px 14px 2px;padding:12px 16px;}
+.pb p{font-size:14px;color:#ddd;line-height:1.65;margin:0;}
+.umw{align-self:flex-end;max-width:82%;}
+.ub{background:var(--orange);border-radius:14px 14px 2px 14px;padding:10px 16px;}
+.ub p{font-size:14px;color:#000;font-weight:600;margin:0;}
+.tw{display:flex;gap:5px;align-items:center;padding:12px 16px;background:var(--s);border:0.5px solid var(--b2);border-radius:14px 14px 14px 2px;}
+.td2{width:6px;height:6px;border-radius:50%;background:var(--td);animation:blink 1.2s infinite;}
+.td2:nth-child(2){animation-delay:0.2s;}
+.td2:nth-child(3){animation-delay:0.4s;}
+@keyframes blink{0%,100%{opacity:0.3}50%{opacity:1}}
+.ob-opts{padding:0 20px 12px;flex-shrink:0;}
+.og{display:flex;flex-wrap:wrap;gap:8px;}
+.oc{background:var(--s);border:0.5px solid var(--b2);border-radius:20px;padding:9px 16px;font-size:13px;font-weight:500;color:var(--tm);cursor:pointer;font-family:'Barlow',sans-serif;transition:all 0.15s;-webkit-tap-highlight-color:transparent;}
+.oc:hover,.oc.sel{background:var(--orange);border-color:var(--orange);color:#000;}
+.oc.eq{padding:7px 12px;font-size:12px;}
+.ob-ir{padding:10px 20px 24px;display:flex;gap:10px;flex-shrink:0;border-top:0.5px solid var(--b);}
+.ob-inp{flex:1;background:var(--s);border:0.5px solid var(--b2);border-radius:24px;padding:12px 18px;font-size:14px;color:var(--t);font-family:'Barlow',sans-serif;outline:none;transition:border-color 0.2s;}
+.ob-inp::placeholder{color:var(--td);}
+.ob-inp:focus{border-color:var(--orange);}
+.sbtn{width:44px;height:44px;border-radius:50%;background:var(--orange);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.sbtn:active{background:var(--od);}
+
+/* MAIN */
+#screen-main{background:var(--ob);}
+.ah{padding:48px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:0.5px solid var(--b);}
+.al{display:flex;align-items:center;gap:8px;}
+.al svg{width:22px;height:22px;}
+.aw{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:4px;color:var(--orange);}
+.hr{display:flex;align-items:center;gap:8px;}
+.ofbadge{display:none;background:rgba(255,94,26,0.15);border:0.5px solid var(--orange);border-radius:20px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--orange);}
+.ofbadge.show{display:block;}
+.bpill{background:rgba(255,94,26,0.1);border:0.5px solid rgba(255,94,26,0.3);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--orange);cursor:pointer;white-space:nowrap;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;cursor:pointer;flex-shrink:0;}
+.tabs{display:flex;border-bottom:0.5px solid var(--b);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:50px;padding:11px 4px;text-align:center;font-size:9px;font-weight:500;color:var(--td);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+.tps{flex:1;overflow:hidden;position:relative;}
+.tp{display:none;flex-direction:column;height:100%;}
+.tp.active{display:flex;}
+.cms{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;scrollbar-width:none;}
+.cms::-webkit-scrollbar{display:none;}
+.cia{padding:10px 16px 24px;border-top:0.5px solid var(--b);display:flex;gap:10px;flex-shrink:0;}
+.ci{flex:1;background:var(--s);border:0.5px solid var(--b2);border-radius:24px;padding:12px 18px;font-size:14px;color:var(--t);font-family:'Barlow',sans-serif;outline:none;resize:none;max-height:100px;}
+.ci::placeholder{color:var(--td);}
+.ci:focus{border-color:var(--orange);}
+.qa{padding:8px 16px 0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.qa::-webkit-scrollbar{display:none;}
+.qc{background:var(--s);border:0.5px solid var(--b2);border-radius:16px;padding:7px 14px;font-size:12px;color:var(--tm);cursor:pointer;white-space:nowrap;font-family:'Barlow',sans-serif;transition:all 0.15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.qc:hover{border-color:var(--orange);color:var(--orange);}
+.sp{flex:1;overflow-y:auto;padding:20px;scrollbar-width:none;}
+.sp::-webkit-scrollbar{display:none;}
+.bph{font-family:'DM Mono',monospace;font-size:10px;color:var(--orange);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;}
+.bpc{background:var(--s);border:0.5px solid var(--b2);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;}
+.bcb{width:4px;height:48px;border-radius:2px;flex-shrink:0;margin-top:2px;}
+.bcc{flex:1;}
+.bcp{font-size:15px;font-weight:600;color:var(--w);margin-bottom:3px;}
+.bcs{font-size:12px;color:var(--tm);margin-bottom:8px;}
+.bcd{font-size:12px;color:var(--td);line-height:1.6;}
+.stitle{font-size:13px;font-weight:600;color:var(--tm);margin:20px 0 12px;}
+.card{background:var(--s);border:0.5px solid var(--b2);border-radius:12px;padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;}
+.card:hover{border-color:var(--orange);}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.card-nm{font-size:14px;font-weight:600;color:var(--w);}
+.card-tg{font-family:'DM Mono',monospace;font-size:10px;color:var(--orange);}
+.card-desc{font-size:12px;color:var(--tm);line-height:1.6;}
+.bigbtn{width:100%;background:var(--orange);border:none;border-radius:8px;padding:14px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:'Barlow',sans-serif;margin-top:16px;transition:background 0.2s;}
+.bigbtn:hover{background:var(--od);}
+.fitgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.fitcard{background:var(--s);border:0.5px solid var(--b2);border-radius:12px;padding:16px;cursor:pointer;transition:border-color 0.2s;text-align:center;}
+.fitcard:hover{border-color:var(--orange);}
+.fitico{font-size:24px;margin-bottom:8px;}
+.fitnm{font-size:13px;font-weight:600;color:var(--w);margin-bottom:4px;}
+.fitdesc{font-size:11px;color:var(--tm);line-height:1.4;}
+.strow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stc{background:var(--s);border:0.5px solid var(--b2);border-radius:10px;padding:16px;text-align:center;}
+.stn{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--orange);line-height:1;margin-bottom:4px;}
+.stl{font-family:'DM Mono',monospace;font-size:10px;color:var(--tm);letter-spacing:0.08em;}
+.mrow{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:0.5px solid var(--b);}
+.mrow:last-child{border-bottom:none;}
+.mico{width:32px;height:32px;border-radius:8px;background:rgba(255,94,26,0.1);border:0.5px solid rgba(255,94,26,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.mtxt{flex:1;}
+.mnm{font-size:13px;font-weight:500;color:var(--w);margin-bottom:2px;}
+.msub{font-size:11px;color:var(--tm);}
+.mst{font-family:'DM Mono',monospace;font-size:10px;color:var(--td);}
+.mst.done{color:var(--orange);}
+.film-ta{width:100%;background:transparent;border:none;font-family:'Barlow',sans-serif;font-size:13px;color:var(--t);outline:none;resize:none;min-height:80px;line-height:1.6;}
+.mo{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.85);z-index:50;align-items:flex-end;justify-content:center;}
+.mo.open{display:flex;}
+.msh{background:var(--s);border-radius:20px 20px 0 0;border:0.5px solid var(--b2);padding:24px 20px 40px;width:100%;max-height:80vh;overflow-y:auto;}
+.mh{width:36px;height:4px;border-radius:2px;background:var(--b2);margin:0 auto 20px;}
+.mt2{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--w);margin-bottom:4px;}
+.ms2{font-size:13px;color:var(--tm);margin-bottom:20px;}
+.mpr{display:flex;align-items:center;gap:12px;padding:14px;background:var(--s2);border-radius:10px;margin-bottom:8px;}
+.mdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.mpn{font-size:14px;font-weight:600;color:var(--w);flex:1;}
+.mps{font-size:11px;color:var(--tm);font-family:'DM Mono',monospace;}
+.mcb{width:100%;background:transparent;border:0.5px solid var(--b2);border-radius:8px;padding:12px;font-size:13px;color:var(--tm);cursor:pointer;font-family:'Barlow',sans-serif;margin-top:8px;}
+.coach-inp{width:100%;background:transparent;border:none;font-family:'Barlow',sans-serif;font-size:13px;color:var(--t);outline:none;resize:none;min-height:60px;line-height:1.6;}
+
+
+
+
+
+
+
+
+
+/* PROFILE MODAL */
+.profile-info{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.profile-avatar-lg{width:52px;height:52px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#000;flex-shrink:0;}
+.profile-name{font-size:16px;font-weight:600;color:var(--w);}
+.profile-email{font-size:12px;color:var(--tm);margin-top:2px;}
+.signout-btn{width:100%;background:transparent;border:0.5px solid #ff4444;border-radius:8px;padding:12px;font-size:13px;color:#ff4444;cursor:pointer;font-family:'Barlow',sans-serif;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- AUTH SCREEN -->
+<div class="screen" id="screen-auth">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <svg viewBox="0 0 80 80" fill="none">
+        <circle cx="40" cy="40" r="34" stroke="#FF5E1A" stroke-width="1.5"/>
+        <path d="M40 6 Q40 40 40 74" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M6 40 Q40 40 74 40" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M16 16 C28 40 28 40 16 64" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M64 16 C52 40 52 40 64 64" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <line x1="40" y1="6" x2="40" y2="26" stroke="#FF5E1A" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="40" cy="40" r="10" stroke="#FF5E1A" stroke-width="1.5" fill="none"/>
+        <circle cx="40" cy="40" r="3" fill="#FF5E1A"/>
+      </svg>
+    </div>
+    <div class="auth-title">POINT</div>
+    <div class="auth-sub">Your personalized AI basketball coach. Build your blueprint. Train like the greats.</div>
+
+    <button class="auth-google" onclick="signInGoogle()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="auth-divider"><span>or</span></div>
+
+    <div id="auth-mode-title" class="auth-mode-title" style="margin-bottom:16px;text-align:center">Sign in</div>
+    <p class="auth-error" id="auth-error"></p>
+    <p class="auth-loading" id="auth-loading">Signing you in...</p>
+
+    <input class="auth-email-inp" id="auth-email" type="email" placeholder="Email address"/>
+    <input class="auth-email-inp" id="auth-pass" type="password" placeholder="Password"/>
+    <button class="auth-btn" onclick="signInEmail()" id="auth-submit-btn">Sign in</button>
+    <div class="auth-switch" id="auth-switch">Don't have an account? <span onclick="toggleAuthMode()">Sign up</span></div>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div class="screen active" id="screen-ob">
+  <div class="ob-hdr">
+    <svg viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="17" stroke="#FF5E1A" stroke-width="1.5"/>
+      <path d="M20 3 Q20 20 20 37" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+      <path d="M3 20 Q20 20 37 20" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+      <path d="M8 8 C14 20 14 20 8 32" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+      <path d="M32 8 C26 20 26 20 32 32" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+      <line x1="20" y1="3" x2="20" y2="14" stroke="#FF5E1A" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="20" cy="20" r="5" stroke="#FF5E1A" stroke-width="1.2" fill="none"/>
+      <circle cx="20" cy="20" r="1.8" fill="#FF5E1A"/>
+    </svg>
+    <span class="ob-word">POINT</span>
+  </div>
+  <div class="ob-prog" id="obp">
+    <div class="ps active" id="ps0"></div><div class="ps" id="ps1"></div><div class="ps" id="ps2"></div>
+    <div class="ps" id="ps3"></div><div class="ps" id="ps4"></div><div class="ps" id="ps5"></div><div class="ps" id="ps6"></div>
+  </div>
+  <div class="ob-chat" id="obc"></div>
+  <div class="ob-opts" id="obo"></div>
+  <div class="ob-ir" id="obir" style="display:none">
+    <input class="ob-inp" id="obi" placeholder="Type here..."/>
+    <button class="sbtn" onclick="obs()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="screen" id="screen-main">
+  <div class="ah">
+    <div class="al">
+      <svg viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="17" stroke="#FF5E1A" stroke-width="1.5"/>
+        <path d="M20 3 Q20 20 20 37" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M3 20 Q20 20 37 20" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M8 8 C14 20 14 20 8 32" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <path d="M32 8 C26 20 26 20 32 32" stroke="#FF5E1A" stroke-width="1" fill="none"/>
+        <line x1="20" y1="3" x2="20" y2="14" stroke="#FF5E1A" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="20" cy="20" r="5" stroke="#FF5E1A" stroke-width="1.2" fill="none"/>
+        <circle cx="20" cy="20" r="1.8" fill="#FF5E1A"/>
+      </svg>
+      <span class="aw">POINT</span>
+    </div>
+    <div class="hr">
+      <div class="ofbadge" id="ofbadge">OFFLINE</div>
+
+      <div class="bpill" onclick="openCoachModal()">Coach ▾</div>
+      <div class="bpill" onclick="openBPModal()">Blueprint ▾</div>
+      <div class="user-avatar" id="user-avatar" onclick="openProfileModal()">?</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="stab('coach')" id="tab-coach">Coach</div>
+    <div class="tab" onclick="stab('blueprint')" id="tab-blueprint">Blueprint</div>
+    <div class="tab" onclick="stab('film')" id="tab-film">Film Room</div>
+    <div class="tab" onclick="stab('fitness')" id="tab-fitness">Fitness</div>
+    <div class="tab" onclick="stab('progress')" id="tab-progress">Progress</div>
+  </div>
+  <div class="tps">
+
+    <div class="tp active" id="tp-coach">
+      <div class="qa" id="qa">
+        <div class="qc" onclick="qs('Start a session for me today')">Start session</div>
+        <div class="qc" onclick="qs('What should I work on today?')">Today's focus</div>
+        <div class="qc" onclick="qs('Give me a quick 20 minute workout')">Quick workout</div>
+        <div class="qc" onclick="qs('How is my blueprint coming along?')">Blueprint check</div>
+        <div class="qc" onclick="qs('I just played a game — debrief me')">Game debrief</div>
+        <div class="qc" onclick="qs('I am feeling low energy today')">Low energy</div>
+      </div>
+      <div class="cms" id="cms"></div>
+      <div class="cia">
+        <textarea class="ci" id="ci" placeholder="Talk to POINT..." rows="1" onkeydown="ck(event)" oninput="ar(this)"></textarea>
+        <button class="sbtn" onclick="cs()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="tp" id="tp-blueprint">
+      <div class="sp">
+        <div class="bph">Your blueprint</div>
+        <div id="bpc"></div>
+        <div class="stitle">Sessions</div>
+        <div id="bsc"></div>
+        <button class="bigbtn" onclick="qs('Build me a full session combining all my blueprint players right now')">Start full session →</button>
+      </div>
+    </div>
+
+    <div class="tp" id="tp-film">
+      <div class="sp">
+        <div class="bph">Film Room</div>
+        <p style="font-size:13px;color:var(--tm);margin-bottom:16px;line-height:1.6;">Describe any game situation and POINT breaks down the right read, what elite players do, and how to recognize it faster.</p>
+        <div class="stitle">Game situations</div>
+        <div id="film-cards"></div>
+        <div class="stitle">Categories</div>
+        <div class="fitgrid">
+          <div class="fitcard" onclick="filmCat('defense')"><div class="fitico">🛡️</div><div class="fitnm">Defense</div><div class="fitdesc">Reads, schemes, guarding elite scorers</div></div>
+          <div class="fitcard" onclick="filmCat('offense')"><div class="fitico">⚡</div><div class="fitnm">Offense</div><div class="fitdesc">Creating shots, finishing, reads</div></div>
+          <div class="fitcard" onclick="filmCat('playmaking')"><div class="fitico">🧠</div><div class="fitnm">Playmaking</div><div class="fitdesc">Floor vision, passing reads, IQ</div></div>
+          <div class="fitcard" onclick="filmCat('blueprint')"><div class="fitico">🎯</div><div class="fitnm">My blueprint</div><div class="fitdesc">How my players create their shots</div></div>
+        </div>
+        <div class="stitle">Custom situation</div>
+        <div style="background:var(--s);border:0.5px solid var(--b2);border-radius:12px;padding:14px;margin-bottom:8px;">
+          <textarea class="film-ta" id="film-inp" placeholder="Describe a game situation..."></textarea>
+        </div>
+        <button class="bigbtn" style="margin-top:0" onclick="filmBreakdown()">Break it down →</button>
+      </div>
+    </div>
+
+    <div class="tp" id="tp-fitness">
+      <div class="sp">
+        <div class="bph">Basketball fitness</div>
+        <p style="font-size:13px;color:var(--tm);margin-bottom:20px;line-height:1.6;">No ball needed. Every workout builds the athletic foundation your blueprint requires.</p>
+        <div class="fitgrid">
+          <div class="fitcard" onclick="fitSess('conditioning')"><div class="fitico">🏃</div><div class="fitnm">Conditioning</div><div class="fitdesc">Cardio built for your position</div></div>
+          <div class="fitcard" onclick="fitSess('explosiveness')"><div class="fitico">⚡</div><div class="fitnm">Explosiveness</div><div class="fitdesc">First step, vertical, lateral speed</div></div>
+          <div class="fitcard" onclick="fitSess('strength')"><div class="fitico">💪</div><div class="fitnm">Strength</div><div class="fitdesc">Body weight and resistance training</div></div>
+          <div class="fitcard" onclick="fitSess('mobility')"><div class="fitico">🧘</div><div class="fitnm">Mobility</div><div class="fitdesc">Flexibility, recovery, injury prevention</div></div>
+          <div class="fitcard" onclick="fitSess('mental')"><div class="fitico">🧠</div><div class="fitnm">Mental reps</div><div class="fitdesc">Visualization — no body required</div></div>
+          <div class="fitcard" onclick="fitSess('full')"><div class="fitico">🔥</div><div class="fitnm">Full workout</div><div class="fitdesc">Complete no-ball training session</div></div>
+        </div>
+        <div class="stitle">Offline sessions</div>
+        <div id="offsess"></div>
+      </div>
+    </div>
+
+    <div class="tp" id="tp-progress">
+      <div class="sp">
+        <div class="strow">
+          <div class="stc"><div class="stn" id="ss">0</div><div class="stl">Sessions</div></div>
+          <div class="stc"><div class="stn" id="sk">0</div><div class="stl">Day streak</div></div>
+          <div class="stc"><div class="stn" id="sp2">0%</div><div class="stl">Blueprint built</div></div>
+          <div class="stc"><div class="stn" id="sd">0</div><div class="stl">Drills done</div></div>
+        </div>
+        <div class="bph" style="margin-top:8px">Milestones</div>
+        <div class="mrow"><div class="mico">🏀</div><div class="mtxt"><div class="mnm">First session</div><div class="msub">Complete your first session</div></div><div class="mst" id="mf">Locked</div></div>
+        <div class="mrow"><div class="mico">🔥</div><div class="mtxt"><div class="mnm">7-day streak</div><div class="msub">Train 7 days in a row</div></div><div class="mst" id="mk">Locked</div></div>
+        <div class="mrow"><div class="mico">⚡</div><div class="mtxt"><div class="mnm" id="mn0">Skill 1</div><div class="msub" id="ms0">Nail in a real game</div></div><div class="mst" id="m0">Locked</div></div>
+        <div class="mrow"><div class="mico">🎯</div><div class="mtxt"><div class="mnm" id="mn1">Skill 2</div><div class="msub" id="ms1">Nail in a real game</div></div><div class="mst" id="m1">Locked</div></div>
+        <div class="mrow"><div class="mico">🧠</div><div class="mtxt"><div class="mnm" id="mn2">Skill 3</div><div class="msub" id="ms2">Nail in a real game</div></div><div class="mst" id="m2">Locked</div></div>
+        <div class="mrow"><div class="mico">👑</div><div class="mtxt"><div class="mnm">Blueprint complete</div><div class="msub">All three skills in real games</div></div><div class="mst" id="mc">Locked</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BLUEPRINT MODAL -->
+  <div class="mo" id="bpm" onclick="closeBPOverlay(event)">
+    <div class="msh">
+      <div class="mh"></div>
+      <div class="mt2">Your blueprint</div>
+      <p class="ms2">The players powering your training</p>
+      <div id="mpc"></div>
+      <button class="mcb" onclick="closeBPModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- COACH MODAL -->
+  <div class="mo" id="cmm" onclick="closeCoachOverlay(event)">
+    <div class="msh">
+      <div class="mh"></div>
+      <div class="mt2">Coach Mode</div>
+      <p class="ms2">Team management tools for coaches and trainers</p>
+      <div class="card" onclick="coachAsk('Build me a full team practice plan for today')"><div class="card-hdr"><span class="card-nm">Practice planner</span><span class="card-tg">TEAM</span></div><p class="card-desc">Build a full practice plan with drills, timing, and coaching points</p></div>
+      <div class="card" onclick="coachAsk('Give me defensive scheme options — zone, man, press')"><div class="card-hdr"><span class="card-nm">Defensive schemes</span><span class="card-tg">X&O</span></div><p class="card-desc">Zone, man, press, and hybrid defensive breakdowns</p></div>
+      <div class="card" onclick="coachAsk('Design offensive plays and sets for my team')"><div class="card-hdr"><span class="card-nm">Play design</span><span class="card-tg">OFFENSE</span></div><p class="card-desc">BLOB, SLOB, half court sets, and transition plays</p></div>
+      <div class="card" onclick="coachAsk('Help me build a scouting report and game plan')"><div class="card-hdr"><span class="card-nm">Opponent scouting</span><span class="card-tg">SCOUT</span></div><p class="card-desc">Scouting reports, tendencies, and game plans</p></div>
+      <div class="card" onclick="coachAsk('Build individual player development plans for my roster')"><div class="card-hdr"><span class="card-nm">Player development</span><span class="card-tg">DEV</span></div><p class="card-desc">Individual development plans for each position</p></div>
+      <div class="card" onclick="coachAsk('Give me a pre-game speech and halftime adjustment framework')"><div class="card-hdr"><span class="card-nm">Locker room</span><span class="card-tg">MENTAL</span></div><p class="card-desc">Pre-game talks, halftime adjustments, team culture</p></div>
+      <div class="card" onclick="coachAsk('Design a full weekly practice schedule with periodization')"><div class="card-hdr"><span class="card-nm">Weekly schedule</span><span class="card-tg">PLAN</span></div><p class="card-desc">Full week practice schedules and periodization</p></div>
+      <div class="card" onclick="coachAsk('How do I handle team culture, discipline, and winning environment')"><div class="card-hdr"><span class="card-nm">Team dynamics</span><span class="card-tg">CULTURE</span></div><p class="card-desc">Leadership, discipline, culture building</p></div>
+      <div style="background:var(--s);border:0.5px solid var(--b2);border-radius:12px;padding:14px;margin:12px 0 8px;">
+        <textarea class="coach-inp" id="coach-inp" placeholder="Ask POINT anything about coaching your team..."></textarea>
+      </div>
+      <button class="bigbtn" style="margin-top:0;margin-bottom:8px" onclick="coachAskCustom()">Ask POINT →</button>
+      <button class="mcb" onclick="closeCoachModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div class="mo" id="prm" onclick="closeProfileOverlay(event)">
+    <div class="msh">
+      <div class="mh"></div>
+      <div class="profile-info">
+        <div class="profile-avatar-lg" id="profile-avatar-lg">?</div>
+        <div>
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-email" id="profile-email">—</div>
+        </div>
+      </div>
+      <div class="bph">Your stats</div>
+      <div class="strow" style="margin-bottom:16px">
+        <div class="stc"><div class="stn" id="ps-sessions">0</div><div class="stl">Sessions</div></div>
+        <div class="stc"><div class="stn" id="ps-streak">0</div><div class="stl">Streak</div></div>
+      </div>
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+      <button class="mcb" onclick="closeProfileModal()">Close</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// SUPABASE
+var SURL='https://ghsdvczymqhaufpsrdjh.supabase.co';
+var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdoc2R2Y3p5bXFoYXVmcHNyZGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjE5NDIsImV4cCI6MjA5NTQ5Nzk0Mn0.5lkELfW1CcoL1LwktR7ofMcoYDv3hOqk9mtD8ATDU4A';
+var sb=null;
+function initSB(){
+  if(typeof supabase !== 'undefined'){
+    sb=supabase.createClient(SURL,SKEY);
+    return true;
+  }
+  return false;
+}
+
+// APP CONFIG
+var W='https://point.bruh-meme-master132.workers.dev/';
+// ElevenLabs config - re-adding voice later
+
+// STATE
+var U={name:'',pos:'',lvl:'',court:'',eq:[],bp:[],weak:'',mode:'player',roster:'',sessions:0,streak:0};
+var H=[],lk=false,isOnline=navigator.onLine;
+var currentUser=null,authMode='signin';
+
+// ONLINE
+window.addEventListener('online',function(){isOnline=true;document.getElementById('ofbadge').classList.remove('show');});
+window.addEventListener('offline',function(){isOnline=false;document.getElementById('ofbadge').classList.add('show');});
+
+// OFFLINE LIBRARY
+var OL={
+  conditioning:[{name:'Guard conditioning',dur:'20 min',steps:['Warm up 2 min','Suicide sprints x5','30 sec rest between','Lateral shuffle 10 yards x8','Jump jacks 2 min','Cool down stretch']}],
+  explosiveness:[{name:'First step power',dur:'20 min',steps:['Squat jumps x10 x3','Lateral bounds x8 x3','Single leg hops x6 x3','Sprint starts x8','Rest 60 sec between sets']}],
+  strength:[{name:'Body weight strength',dur:'25 min',steps:['Push ups x15 x3','Plank 45 sec x3','Lunges x12 x3','Glute bridges x15 x3','Core leg raises x12 x3']}],
+  mobility:[{name:'Pre-session mobility',dur:'10 min',steps:['Hip circles x10','Leg swings x10','Ankle rotations x10','Pigeon pose 30 sec each','Hip flexor 30 sec each']}],
+  mental:[{name:'Blueprint visualization',dur:'15 min',steps:['Eyes closed. Breathe x5.','See yourself on your court.','Execute your first blueprint skill perfectly.','Repeat for each blueprint skill.','Open your eyes. You just got reps.']}],
+  full:[{name:'Complete no-ball workout',dur:'45 min',steps:['Warm up 3 min','Explosiveness block x3 sets','Strength block x3 rounds','Conditioning sprints x4','Mental reps 10 min','Cool down stretch 5 min']}]
+};
+
+var FILM=[
+  {t:'Being blitzed on pick and roll',d:'Guard trapped — what are the reads?'},
+  {t:'Late closeout on a shooter',d:'How to contest without fouling'},
+  {t:'Zone offense — attacking 2-3',d:'Finding gaps and creating shots'},
+  {t:'Transition defense — outnumbered',d:'How to stop the fast break'},
+  {t:'Post entry denied',d:'Seal, re-seal, create angles'},
+  {t:'Guarding an isolation scorer',d:'Contain without fouling'},
+  {t:'Out of bounds — BLOB plays',d:'Best sets and how to defend them'},
+  {t:'End of game — down 3',d:'How to foul, reset, and execute'}
+];
+
+// ─── AUTH ───
+var isSignUp=false;
+
+function toggleAuthMode(){
+  isSignUp=!isSignUp;
+  document.getElementById('auth-mode-title').textContent=isSignUp?'Create account':'Sign in';
+  document.getElementById('auth-submit-btn').textContent=isSignUp?'Create account':'Sign in';
+  document.getElementById('auth-switch').innerHTML=isSignUp?'Already have an account? <span onclick="toggleAuthMode()">Sign in</span>':'Don\'t have an account? <span onclick="toggleAuthMode()">Sign up</span>';
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+async function signInGoogle(){
+  if(!sb){showAuthError('Still loading. Try again in a moment.');return;}
+  try{
+    var{error}=await sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:'https://pointaiapp-23k4fp3jy-marlowe-s-projects.vercel.app'}
+    });
+    if(error) showAuthError(error.message);
+  }catch(e){showAuthError('Google sign in failed. Try again.');}
+}
+
+async function signInEmail(){
+  if(!sb){showAuthError('Still loading. Try again in a moment.');return;}
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('auth-pass').value;
+  if(!email||!pass){showAuthError('Please enter email and password.');return;}
+  document.getElementById('auth-loading').classList.add('show');
+  document.getElementById('auth-error').classList.remove('show');
+  try{
+    var result;
+    if(isSignUp){
+      result=await sb.auth.signUp({email:email,password:pass});
+    }else{
+      result=await sb.auth.signInWithPassword({email:email,password:pass});
+    }
+    if(result.error){
+      document.getElementById('auth-loading').classList.remove('show');
+      showAuthError(result.error.message);
+    }
+    // onAuthStateChange will handle the rest
+  }catch(e){
+    document.getElementById('auth-loading').classList.remove('show');
+    showAuthError('Authentication failed. Try again.');
+  }
+}
+
+function showAuthError(msg){
+  var el=document.getElementById('auth-error');
+  el.textContent=msg;el.classList.add('show');
+}
+
+async function signOut(){
+  localStorage.removeItem('point_user_local');
+  currentUser=null;
+  U={name:'',pos:'',lvl:'',court:'',eq:[],bp:[],weak:'',mode:'player',roster:'',sessions:0,streak:0};
+  H=[];
+  closeProfileModal();
+  showScreen('screen-ob');
+  init();
+}
+
+// AUTH STATE LISTENER — handled below near checkSession
+
+function handleSignedIn(user){
+  hhl(); // Hide loader immediately — no async, no waiting
+  updateAvatar(user);
+
+  // Check localStorage first — instant, no network needed
+  var saved = localStorage.getItem('point_user_local');
+  if(saved){
+    try{
+      var d = JSON.parse(saved);
+      U.name=d.name||'';
+      U.pos=d.position||'';
+      U.lvl=d.level||'';
+      U.court=d.court||'';
+      U.eq=d.equipment?d.equipment.split(', '):[];
+      U.bp=d.blueprint?parseBP(d.blueprint):[];
+      U.weak=d.weakness||'';
+      U.mode=d.mode||'player';
+      U.sessions=d.sessions||0;
+      U.streak=d.streak||0;
+      showScreen('screen-main');
+      bbc();bsc();bms();bmc();buildOff();buildFilm();
+      updStats();
+      var hr=new Date().getHours();
+      var gr=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+      var welcome=gr+', '+U.name+'. Welcome back. Ready to work?';
+      addM(welcome,false);
+    }catch(e){
+      console.log('localStorage parse error:',e);
+      showScreen('screen-ob');
+      init();
+    }
+  }else{
+    // New user — run onboarding
+    showScreen('screen-ob');
+    init();
+  }
+
+  // Background sync with Supabase — non-blocking
+  setTimeout(function(){
+    sb.from('users').select('*').eq('id',user.id).single().then(function(res){
+      if(res.data&&res.data.name){
+        localStorage.setItem('point_user_'+user.id, JSON.stringify({
+          name:res.data.name, position:res.data.position,
+          level:res.data.level, court:res.data.court,
+          equipment:res.data.equipment, blueprint:res.data.blueprint,
+          weakness:res.data.weakness, mode:res.data.mode,
+          sessions:res.data.sessions||0, streak:res.data.streak||0
+        }));
+      }
+    }).catch(function(e){ console.log('Background sync error:',e); });
+  }, 2000);
+}
+
+function parseBP(str){
+  if(!str)return[];
+  return str.split(' | ').map(function(s){
+    var m=s.match(/(.+?)\s*\((.+?)\)/);
+    return m?{player:m[1],skill:m[2]}:{player:s,skill:''};
+  });
+}
+
+function updateAvatar(user){
+  var name=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:(user.email||'U');
+  var initial=name.charAt(0).toUpperCase();
+  document.getElementById('user-avatar').textContent=initial;
+  document.getElementById('profile-avatar-lg').textContent=initial;
+  document.getElementById('profile-name').textContent=name;
+  document.getElementById('profile-email').textContent=user.email||'';
+}
+
+function saveUserToDB(){
+  // Save to localStorage — no auth required
+  try{
+    var bp=U.bp.map(function(b){return b.player+' ('+b.skill+')';}).join(' | ');
+    var userData={
+      name:U.name, position:U.pos, level:U.lvl,
+      court:U.court, equipment:U.eq.join(', '),
+      blueprint:bp, weakness:U.weak,
+      mode:U.mode, sessions:U.sessions, streak:U.streak
+    };
+    localStorage.setItem('point_user_local', JSON.stringify(userData));
+    console.log('Saved to localStorage:', U.name);
+  }catch(e){ console.log('Save error:',e); }
+}
+
+// VOICE — disabled temporarily, re-adding ElevenLabs later
+function spk(text){ /* voice disabled */ }
+function sv(){}
+function tv(){ showNotif('Voice coming soon'); }
+function showNotif(msg){ console.log(msg); }
+
+// SYSTEM PROMPT
+function sysP(){
+  var bp=U.bp.map(function(b){return b.player+' ('+b.skill+')';}).join(', ');
+  var eq=U.eq.length?U.eq.join(', '):'basketball';
+  var players=U.bp.map(function(b){return b.player;}).join(', ')||'your blueprint players';
+  if(U.mode==='coach'){
+    return 'You are POINT, an elite AI basketball coaching intelligence. Speaking with Coach '+U.name+'.\n'+
+      'Voice: Steve Kerr meets Pop — experienced, direct, tactical.\nAddress them as Coach.\n'+
+      'Level: '+U.lvl+' | Roster: '+(U.roster||'unknown')+' | Challenge: '+U.weak+'\n'+
+      'Focus on: practice planning, X and O, scouting, player development, culture. Be tactical. Under 150 words.';
+  }
+  return 'You are POINT, an elite AI basketball coach. Voice: Steve Kerr — calm, direct, intelligent, dry humor. Never: amazing, crush it, you\'ve got this, epic.\n'+
+    'CRITICAL: Only reference these players: '+players+'. Never any other NBA player.\n'+
+    'User: '+U.name+' | '+U.pos+' | '+U.lvl+' | Court: '+U.court+' | Gear: '+eq+'\n'+
+    'Blueprint: '+bp+'\nWeakness: '+U.weak+'\nKeep responses under 120 words.';
+}
+
+// API
+async function api(msg){
+  H.push({role:'user',content:msg});
+  try{
+    var r=await fetch(W,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:350,system:sysP(),messages:H})});
+    if(!r.ok){H.pop();return 'Having trouble connecting. Try again.';}
+    var d=await r.json();
+    if(d.error){H.pop();return 'Something went wrong. Try again.';}
+    var rep=d.content&&d.content[0]?d.content[0].text:'Try again.';
+    H.push({role:'assistant',content:rep});
+    return rep;
+  }catch(e){H.pop();return 'Connection issue. Try again.';}
+}
+
+// ONBOARDING HELPERS
+var obc=document.getElementById('obc');
+var obo=document.getElementById('obo');
+var obir=document.getElementById('obir');
+var obi=document.getElementById('obi');
+
+function prg(n){
+  for(var i=0;i<7;i++){
+    var s=document.getElementById('ps'+i);
+    if(i<n)s.className='ps done';
+    else if(i===n)s.className='ps active';
+    else s.className='ps';
+  }
+}
+
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function ap(text){
+  return new Promise(function(res){
+    var tw=document.createElement('div');tw.className='pmw';
+    tw.innerHTML='<div class="pml"><span class="pdot"></span> POINT</div><div class="tw"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div>';
+    obc.appendChild(tw);obc.scrollTop=obc.scrollHeight;
+    setTimeout(function(){
+      tw.remove();
+      var w=document.createElement('div');w.className='pmw';
+      w.innerHTML='<div class="pml"><span class="pdot"></span> POINT</div><div class="pb"><p>'+esc(text)+'</p></div>';
+      obc.appendChild(w);obc.scrollTop=obc.scrollHeight;
+      spk(text);res();
+    },600);
+  });
+}
+
+function au(text){
+  var w=document.createElement('div');w.className='umw';
+  w.innerHTML='<div class="ub"><p>'+esc(text)+'</p></div>';
+  obc.appendChild(w);obc.scrollTop=obc.scrollHeight;
+}
+
+function so(opts,multi,cb){
+  obo.innerHTML='';obir.style.display='none';
+  var g=document.createElement('div');g.className='og';
+  var sel=[];
+  opts.forEach(function(o){
+    var c=document.createElement('div');c.className='oc'+(o.eq?' eq':'');
+    c.textContent=o.label||o;
+    c.onclick=function(){
+      if(multi){
+        c.classList.toggle('sel');
+        var v=o.value||o.label||o;
+        var i=sel.indexOf(v);
+        if(i>-1)sel.splice(i,1);else sel.push(v);
+      }else{
+        g.querySelectorAll('.oc').forEach(function(x){x.classList.remove('sel');});
+        c.classList.add('sel');sel=[o.value||o.label||o];
+        setTimeout(function(){cb(sel[0],o.label||o);},350);
+      }
+    };
+    g.appendChild(c);
+  });
+  if(multi){
+    var dn=document.createElement('div');dn.className='oc';dn.textContent='Done ✓';
+    dn.style.cssText='background:var(--orange);border-color:var(--orange);color:#000;font-weight:600;';
+    dn.onclick=function(){cb(sel);};g.appendChild(dn);
+  }
+  obo.appendChild(g);
+}
+
+function si(ph,cb){
+  obo.innerHTML='';obir.style.display='flex';
+  obi.placeholder=ph;obi.value='';obi.focus();obi._cb=cb;
+}
+
+function obs(){var v=obi.value.trim();if(!v||!obi._cb)return;obi.value='';obi._cb(v);}
+obi.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();obs();}});
+
+function gsk(n){
+  var x=n.toLowerCase();
+  if(x.includes('curry')||x.includes('steph'))return['Shooting mechanics','Off-ball movement','Catch and shoot','Ball handling'];
+  if(x.includes('luka')||x.includes('doncic'))return['Ball IQ','Playmaking','Step-back three','Post game'];
+  if(x.includes('shai')||x.includes('gilgeous'))return['Change of pace','Scoring versatility','Finishing','Mid-range'];
+  if(x.includes('garland'))return['Floater read','Floater mechanics','Ball handling','Pick and roll'];
+  if(x.includes('ja')||x.includes('morant'))return['Rim attacking','Explosiveness','Floater','Transition'];
+  if(x.includes('jordan')||x.includes('michael'))return['Mid-range mastery','Fadeaway','Post game','Defense'];
+  if(x.includes('kobe')||x.includes('bryant'))return['Post game','Shot creation','Mid-range','Footwork'];
+  if(x.includes('lebron')||x.includes('james'))return['Transition','Playmaking','Power finishing','IQ'];
+  if(x.includes('durant')||x.includes('kd'))return['Three-level scoring','Pull-up','Post game','Length'];
+  if(x.includes('kyrie')||x.includes('irving'))return['Ball handling','Finishing','Ambidexterity','Shot creation'];
+  if(x.includes('jokic'))return['Playmaking','Post game','Passing','IQ'];
+  if(x.includes('trae')||x.includes('young'))return['Deep shooting','Floater','Pick and roll','Playmaking'];
+  if(x.includes('giannis'))return['Downhill attacking','Rim finishing','Defense','Mid-range'];
+  if(x.includes('kawhi')||x.includes('leonard'))return['Isolation scoring','Defense','Mid-range','Footwork'];
+  if(x.includes('dame')||x.includes('lillard'))return['Deep range','Clutch','Pull-up','Handle'];
+  if(x.includes('harden'))return['Step-back three','Foul drawing','Playmaking','Isolation'];
+  if(x.includes('tatum'))return['Scoring versatility','Pull-up','Post game','Footwork'];
+  if(x.includes('ant')||x.includes('edwards'))return['Pull-up shooting','Physical scoring','Athleticism','Defense'];
+  if(x.includes('cp3')||x.includes('chris paul'))return['Pick and roll','Mid-range','Court vision','Defense'];
+  if(x.includes('wemb')||x.includes('victor'))return['Rim protection','Perimeter shooting','Length','Playmaking'];
+  return['Shooting','Ball handling','Scoring','Playmaking','Defense','Athleticism','IQ'];
+}
+
+function hbp(name,num){
+  au(name);
+  ap("What part of "+name+"'s game do you want?").then(function(){
+    so(gsk(name),false,function(skill,sl){
+      U.bp.push({player:name,skill:sl||skill});au(sl||skill);
+      if(num<3){
+        ap('Got it. Add another player or lock in your blueprint.').then(function(){
+          so([{label:'Add player '+(num+1),value:'add'},{label:"That's my blueprint",value:'done'}],false,function(v){
+            if(v==='add'){prg(4+num);ap("Who's your next player?").then(function(){si('Player name...',function(p){hbp(p,num+1);});});}
+            else{fbp();}
+          });
+        });
+      }else{fbp();}
+    });
+  });
+}
+
+async function fbp(){
+  prg(5);
+  await ap('Blueprint locked — '+U.bp.map(function(b){return b.player;}).join(', ')+'. Last question.');
+  prg(6);
+  await ap("Be honest. What's the weakest part of your game right now?");
+  si('Be specific...',async function(w){
+    U.weak=w;au(w);obo.innerHTML='';obir.style.display='none';
+    shl();
+    var rep=await api('Give me my opening line. Under 60 words. Kerr voice. Reference my blueprint players and my weakness. Direct. No hype.');
+    hhl();await ap(rep);
+    await new Promise(function(r){setTimeout(r,600);});
+    await saveUserToDB();
+    launch();
+  });
+}
+
+async function coachOB(name){
+  prg(2);
+  await ap('What level do you coach?');
+  so(['Youth','Middle school','High school','College','Professional','Recreational'],false,async function(v,l){
+    U.lvl=l||v;au(U.lvl);prg(3);
+    await ap('How many players on your roster?');
+    so(['5-8 players','9-12 players','13-15 players','16+ players'],false,async function(v2,l2){
+      U.roster=l2||v2;au(U.roster);prg(4);
+      await ap("What's your biggest coaching challenge?");
+      si('e.g. player development, team defense, culture...',async function(challenge){
+        U.weak=challenge;au(challenge);obo.innerHTML='';obir.style.display='none';
+        shl();
+        var rep=await api('I am a '+U.lvl+' basketball coach with '+U.roster+'. Challenge: '+challenge+'. Give me a sharp opening line under 60 words. Kerr voice. Address me as Coach.');
+        hhl();await ap(rep);
+        await new Promise(function(r){setTimeout(r,600);});
+        U.bp=[{player:'Your team',skill:'Team development'}];
+        await saveUserToDB();
+        launchCoach();
+      });
+    });
+  });
+}
+
+function shl(){ /* no loading screen */ }
+function hhl(){ /* no loading screen */ }
+
+async function init(){
+  prg(0);
+  await ap("Welcome to POINT. Are you a player or a coach?");
+  so([{label:"I'm a player",value:'player'},{label:"I'm a coach",value:'coach'}],false,async function(v,l){
+    U.mode=v;au(l);prg(1);
+    if(v==='coach'){
+      await ap("Coach mode. What is your name?");
+      si('Your name...',async function(n){
+        U.name=n;au(n);obir.style.display='none';
+        await ap("Good to meet you, Coach "+n+". Let's build your coaching profile.");
+        await coachOB(n);
+      });
+    }else{
+      await ap("Player mode. What is your name?");
+      si('Your name...',async function(n){
+        U.name=n;au(n);obir.style.display='none';prg(1);
+        await ap("Good to meet you, "+n+". Five questions and I'll build your training system. What position do you play?");
+        so(['Point guard','Shooting guard','Small forward','Power forward','Center'],false,async function(v2,l2){
+          U.pos=l2||v2;au(U.pos);prg(2);
+          await ap('Where are you right now?');
+          so(['Just starting out','Recreational','Competitive league','Serious about improving'],false,async function(v3,l3){
+            U.lvl=l3||v3;au(U.lvl);prg(3);
+            await ap('What court do you have?');
+            so(['Driveway','Half court','Full court','Gym access'],false,async function(v4,l4){
+              U.court=l4||v4;au(U.court);
+              await ap('What equipment? Tap all that apply.');
+              so([{label:'Basketball',eq:true},{label:'Cones',eq:true},{label:'Agility ladder',eq:true},{label:'Resistance bands',eq:true},{label:'Shooting machine',eq:true},{label:'Just a ball',eq:true}],true,async function(eq){
+                U.eq=eq.length?eq:['Basketball'];au(U.eq.join(', '));prg(4);
+                await ap("Your blueprint. Pick up to 3 NBA players and the skill you want from each. Who's first?");
+                si('Player name...',function(p){hbp(p,1);});
+              });
+            });
+          });
+        });
+      });
+    }
+  });
+}
+
+// LAUNCH
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function launch(){
+  showScreen('screen-main');
+  bbc();bsc();bms();bmc();buildOff();buildFilm();updStats();
+  addM(H[H.length-1].content,false);
+}
+
+function launchCoach(){
+  showScreen('screen-main');
+  document.getElementById('qa').innerHTML=
+    '<div class="qc" onclick="qs(\'Build me a practice plan for today\')">Practice plan</div>'+
+    '<div class="qc" onclick="qs(\'Give me defensive scheme options\')">Defense schemes</div>'+
+    '<div class="qc" onclick="qs(\'Design offensive sets for my team\')">Play design</div>'+
+    '<div class="qc" onclick="qs(\'Help me with a pre-game speech\')">Pre-game talk</div>'+
+    '<div class="qc" onclick="qs(\'Player development plans for my roster\')">Player dev</div>'+
+    '<div class="qc" onclick="qs(\'How do I scout our next opponent\')">Scout report</div>';
+  bbc();bms();buildFilm();updStats();
+  addM(H[H.length-1].content,false);
+}
+
+// MAIN APP
+function stab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tp').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('tp-'+tab).classList.add('active');
+}
+
+function addM(text,isU){
+  var msgs=document.getElementById('cms');
+  var w=document.createElement('div');
+  if(isU){
+    w.className='umw';w.innerHTML='<div class="ub"><p>'+esc(text)+'</p></div>';
+  }else{
+    w.className='pmw';
+    w.innerHTML='<div class="pml"><span class="pdot"></span> POINT</div><div class="pb"><p>'+esc(text).replace(/\n/g,'<br>')+'</p></div>';
+    spk(text);
+  }
+  msgs.appendChild(w);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addTyp(){
+  var msgs=document.getElementById('cms');
+  var w=document.createElement('div');w.className='pmw';w.id='mtyp';
+  w.innerHTML='<div class="pml"><span class="pdot"></span> POINT</div><div class="pb"><div class="tw"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div></div>';
+  msgs.appendChild(w);msgs.scrollTop=msgs.scrollHeight;
+}
+function remTyp(){var t=document.getElementById('mtyp');if(t)t.remove();}
+
+async function send(msg){
+  if(lk)return;lk=true;
+  addM(msg,true);addTyp();
+  var rep=await api(msg);
+  remTyp();addM(rep,false);
+  U.sessions++;updStats();
+  saveUserToDB();
+  lk=false;
+}
+
+async function cs(){
+  var inp=document.getElementById('ci');
+  var v=inp.value.trim();if(!v)return;
+  inp.value='';inp.style.height='auto';await send(v);
+}
+function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();cs();}}
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+async function qs(msg){if(lk)return;stab('coach');await send(msg);}
+
+function updStats(){
+  document.getElementById('ss').textContent=U.sessions;
+  document.getElementById('sk').textContent=U.streak;
+  document.getElementById('sp2').textContent=Math.min(U.sessions*5,100)+'%';
+  document.getElementById('sd').textContent=U.sessions*4;
+  document.getElementById('ps-sessions').textContent=U.sessions;
+  document.getElementById('ps-streak').textContent=U.streak;
+  if(U.sessions>=1){var m=document.getElementById('mf');m.textContent='✓ Done';m.classList.add('done');}
+}
+
+var CL=['#4A9EE8','#52B788','#9B8FD4','#E8A24A'];
+
+function bbc(){
+  var c=document.getElementById('bpc');if(!c)return;c.innerHTML='';
+  U.bp.forEach(function(bp,i){
+    var d=document.createElement('div');d.className='bpc';
+    d.innerHTML='<div class="bcb" style="background:'+CL[i]+'"></div><div class="bcc"><div class="bcp">'+esc(bp.player)+'</div><div class="bcs">'+esc(bp.skill)+'</div><div class="bcd">Building this into your game through targeted POINT coaching sessions.</div></div>';
+    c.appendChild(d);
+  });
+}
+
+function bsc(){
+  var c=document.getElementById('bsc');if(!c)return;c.innerHTML='';
+  U.bp.forEach(function(bp,i){
+    if(bp.player==='Your team')return;
+    var d=document.createElement('div');d.className='card';
+    var msg='Build me a focused session on '+bp.player+"'s "+bp.skill+' using my '+U.court+' and '+U.eq.join(', ');
+    d.innerHTML='<div class="card-hdr"><span class="card-nm">'+esc(bp.player)+' — '+esc(bp.skill)+'</span><span class="card-tg" style="color:'+CL[i]+'">'+esc(bp.player.split(' ').pop().toUpperCase())+'</span></div><p class="card-desc">Session built around '+esc(bp.player)+"'s "+esc(bp.skill)+'.</p>';
+    d.onclick=function(){qs(msg);};c.appendChild(d);
+  });
+}
+
+function bms(){
+  U.bp.forEach(function(bp,i){
+    var n=document.getElementById('mn'+i);var s=document.getElementById('ms'+i);
+    if(n)n.textContent=bp.player+' unlocked';
+    if(s)s.textContent='Nail '+bp.skill+' in a real game';
+  });
+}
+
+function bmc(){
+  var c=document.getElementById('mpc');if(!c)return;c.innerHTML='';
+  U.bp.forEach(function(bp,i){
+    var r=document.createElement('div');r.className='mpr';
+    r.innerHTML='<div class="mdot" style="background:'+CL[i]+'"></div><div class="mpn">'+esc(bp.player)+'</div><div class="mps">'+esc(bp.skill)+'</div>';
+    c.appendChild(r);
+  });
+}
+
+function buildFilm(){
+  var c=document.getElementById('film-cards');if(!c)return;c.innerHTML='';
+  FILM.forEach(function(s){
+    var d=document.createElement('div');d.className='card';
+    var msg='Film room — break down this situation: '+s.t+'. What are the reads? What do elite players do? How do I recognize this faster?';
+    d.innerHTML='<div class="card-hdr"><span class="card-nm">'+esc(s.t)+'</span><span class="card-tg">FILM</span></div><p class="card-desc">'+esc(s.d)+'</p>';
+    d.onclick=function(){stab('coach');qs(msg);};c.appendChild(d);
+  });
+}
+
+function filmCat(type){
+  var msgs={
+    defense:'Walk me through the most important defensive reads I need as a '+U.pos+'. What do elite defenders do that most players miss?',
+    offense:'Break down the offensive reads I need at '+U.pos+'. What creates clean shots and what kills possessions?',
+    playmaking:'Teach me playmaking reads. How do elite playmakers see the floor before the defense reacts?',
+    blueprint:'Break down how my blueprint players create their best shots. What specific moves and reads do they look for?'
+  };
+  stab('coach');qs(msgs[type]||msgs.offense);
+}
+
+function filmBreakdown(){
+  var inp=document.getElementById('film-inp');
+  var val=inp.value.trim();if(!val)return;
+  inp.value='';stab('coach');
+  qs('Film room breakdown: '+val+' Give me the right read, what elite players do, and how to recognize it faster.');
+}
+
+function fitSess(type){
+  var msgs={
+    conditioning:'Build me a conditioning session. No ball. Connect it to my blueprint and position.',
+    explosiveness:'Build me an explosiveness session. No ball. First step, vertical, lateral — connected to my blueprint.',
+    strength:'Build me a strength session. No ball, body weight focus. Connect it to my blueprint players.',
+    mobility:'Give me a mobility and recovery session. No ball.',
+    mental:'Run me through a mental visualization session. Blueprint skills and game situations.',
+    full:'Build me a complete no-ball workout. Conditioning, strength, explosiveness, and mental reps.'
+  };
+  stab('coach');qs(msgs[type]||msgs.full);
+}
+
+function buildOff(){
+  var c=document.getElementById('offsess');if(!c)return;c.innerHTML='';
+  var types=['conditioning','explosiveness','strength','mobility','mental'];
+  types.forEach(function(type){
+    (OL[type]||[]).forEach(function(s){
+      var d=document.createElement('div');d.className='card';
+      d.innerHTML='<div class="card-hdr"><span class="card-nm">'+esc(s.name)+'</span><span class="card-tg">'+esc(s.dur)+' · OFFLINE</span></div><p class="card-desc">'+esc(s.steps[0])+'...</p>';
+      d.onclick=function(){
+        stab('coach');
+        addM('[OFFLINE — '+s.name+']\n\n'+s.steps.map(function(st,i){return (i+1)+'. '+st;}).join('\n'),false);
+        U.sessions++;updStats();saveUserToDB();
+      };
+      c.appendChild(d);
+    });
+  });
+}
+
+// MODALS
+function openBPModal(){document.getElementById('bpm').classList.add('open');}
+function closeBPModal(){document.getElementById('bpm').classList.remove('open');}
+function closeBPOverlay(e){if(e.target===document.getElementById('bpm'))closeBPModal();}
+function openCoachModal(){document.getElementById('cmm').classList.add('open');}
+function closeCoachModal(){document.getElementById('cmm').classList.remove('open');}
+function closeCoachOverlay(e){if(e.target===document.getElementById('cmm'))closeCoachModal();}
+function openProfileModal(){
+  document.getElementById('ps-sessions').textContent=U.sessions;
+  document.getElementById('ps-streak').textContent=U.streak;
+  document.getElementById('prm').classList.add('open');
+}
+function closeProfileModal(){document.getElementById('prm').classList.remove('open');}
+function closeProfileOverlay(e){if(e.target===document.getElementById('prm'))closeProfileModal();}
+
+function coachAsk(msg){
+  closeCoachModal();stab('coach');
+  qs(msg+(U.mode==='coach'?' Respond as an experienced basketball coach. Be specific and tactical.':''));
+}
+function coachAskCustom(){
+  var inp=document.getElementById('coach-inp');
+  var val=inp.value.trim();if(!val)return;
+  inp.value='';closeCoachModal();stab('coach');
+  qs(val+(U.mode==='coach'?' Be specific and tactical as a basketball coach.':''));
+}
+
+// CHECK FOR EXISTING SESSION ON LOAD
+// Give Supabase time to process OAuth redirect token from URL hash first
+function checkSession(){
+  var saved = localStorage.getItem('point_user_local');
+  if(saved){
+    try{
+      var d = JSON.parse(saved);
+      if(d.name){
+        U.name=d.name; U.pos=d.position||''; U.lvl=d.level||'';
+        U.court=d.court||''; U.eq=d.equipment?d.equipment.split(', '):[];
+        U.bp=d.blueprint?parseBP(d.blueprint):[];
+        U.weak=d.weakness||''; U.mode=d.mode||'player';
+        U.sessions=d.sessions||0; U.streak=d.streak||0;
+        showScreen('screen-main');
+        bbc();bsc();bms();bmc();buildOff();buildFilm();updStats();
+        var hr=new Date().getHours();
+        var gr=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+        addM(gr+', '+U.name+'. Welcome back. Ready to work?',false);
+        return;
+      }
+    }catch(e){ localStorage.removeItem('point_user_local'); }
+  }
+  showScreen('screen-ob');
+  init();
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',checkSession);
+}else{
+  checkSession();
+}
+</script>
+</body>
+</html>
